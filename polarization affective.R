@@ -14,6 +14,8 @@ theme_set(
     )
 )
 
+# load data ----
+
 load(here('data_affpol/affective_polarization.Rdata'))
 
 meta_parties <- meta_parties[order(meta_parties$study,meta_parties$letter),]
@@ -26,34 +28,35 @@ north_america <- c("Canada", "Mexico", "United States of America")
 df <- df[df$country %in% c(europe,north_america),]
 df$country <- factor(df$country, levels=c(europe,north_america), labels=c(europe_acr,north_america_acr))
 
-# calculate affective polarization scores from feeling thermometer
-### #df <- df[sample(1:nrow(df), 5000),]
-### df <- df[!is.na(df$letter),]
-### inloveindex <- match(tolower(df$letter), letters[1:9])+5
-### df$inlove <- NA
-### for(i in 1:nrow(df)){
-###  cat("processing ", i, " of ", nrow(df), " (", round(i/nrow(df)*100,0), "%)", "\r", sep="")
-###  df$inlove[i] <- df[i, inloveindex[i]]
-###  flush.console()
-### } 
-### df <- df[!is.na(df$inlove),]
-### 
-### df$outlove <- NA
-### for(i in 1:nrow(df)) {
-###  # track progress
-###  cat("processing ", i, " of ", nrow(df), " (", round(i/nrow(df)*100,0), "%)", "\r", sep="")
-### 
-###  outlovevalues <- df[i, 6:14]
-###  outloveweights <- meta_parties$percvote[df$study[i]==meta_parties$study]
-###  outlovevalues <- outlovevalues[-match(tolower(df$letter[i]), letters[1:9])]
-###  outloveweights <- outloveweights[-match(tolower(df$letter[i]), letters[1:9])]
-###  outlovevalues <- outlovevalues * outloveweights
-### 
-###  df$outlove[i] <- sum(outlovevalues, na.rm=T) / sum(outloveweights, na.rm=TRUE)
-###  flush.console()
-### }
-### df$ap <- abs(df$inlove - df$outlove * 10)
-### save(df, file='data_affpol/ap_scores_europe-northamerica.Rdata')
+# calculate affective polarization scores from feeling thermometer (takes long) ----
+df <- df[!is.na(df$letter),]
+inloveindex <- match(tolower(df$letter), letters[1:9])+5
+df$inlove <- NA
+for(i in 1:nrow(df)){
+ cat("processing ", i, " of ", nrow(df), " (", round(i/nrow(df)*100,0), "%)", "\r", sep="")
+ df$inlove[i] <- df[i, inloveindex[i]]
+ flush.console()
+} 
+df <- df[!is.na(df$inlove),]
+
+df$outlove <- NA
+for(i in 1:nrow(df)) {
+ # track progress
+ cat("processing ", i, " of ", nrow(df), " (", round(i/nrow(df)*100,0), "%)", "\r", sep="")
+
+ outlovevalues <- df[i, 6:14]
+ outloveweights <- meta_parties$percvote[df$study[i]==meta_parties$study]
+ outlovevalues <- outlovevalues[-match(tolower(df$letter[i]), letters[1:9])]
+ outloveweights <- outloveweights[-match(tolower(df$letter[i]), letters[1:9])]
+ outlovevalues <- outlovevalues * outloveweights
+
+ df$outlove[i] <- sum(outlovevalues, na.rm=T) / sum(outloveweights, na.rm=TRUE)
+ flush.console()
+}
+df$ap <- abs(df$inlove - df$outlove) * 10
+save(df, file='data_affpol/ap_scores_europe-northamerica.Rdata')
+
+# plot ----
 load('data_affpol/ap_scores_europe-northamerica.Rdata')
 
 ggplot(df, aes(x=inlove)) + geom_histogram()
@@ -66,7 +69,7 @@ df$continent[df$country %in% north_america_acr] <- 'North America'
 
 ggplot(df[df$country=="DE",], aes(x=year, y=ap, color=country)) + stat_summary(fun.y='mean', geom='line')
 ggplot(df[df$country=="GB",], aes(x=year, y=ap, color=country)) + stat_summary(fun.y='mean', geom='line')
-ggplot(df[df$country=="FR",], aes(x=year, y=ap, color=country)) + stat_summary(fun.y='mean', geom='line')
+ggplot(df[df$country=="US",], aes(x=year, y=ap, color=country)) + stat_summary(fun.y='mean', geom='line')
 
 country_year <- data.frame(
   country=c("BE","CH","DE","ES","FI","FR","GB","HU","IE","NL","NO","PL","PT","SE","SI","CA","MX","US"),
